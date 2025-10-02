@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إذن استلام فواتير (طباعة في تاب جديدة)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #121212; --bg-card: #1E1E1E; --text-light: #F0F0F0; --border-color: #3E3E3E; --input-bg: #2C2C2C; --primary-blue: #3498DB; --total-bg: #1B4E38; --primary-green: #00A86B; --danger-red: #DC3545;
+        }
+        body { font-family: 'Cairo', sans-serif; background-color: var(--bg-dark); color: var(--text-light); direction: rtl; margin: 0; padding: 0; }
+        .container { max-width: 1100px; margin: 20px auto; padding: 15px; width: 100%; box-sizing: border-box; }
+        .card { background-color: var(--bg-card); border-radius: 12px; padding: 30px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); }
+        .app-header h1 { color: var(--primary-blue); font-size: 32px; font-weight: 700; margin-bottom: 5px; }
+        .info-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 35px; flex-wrap: wrap; gap: 20px; }
+        .info-box { flex: 1 1 30%; min-width: 250px; display: flex; flex-direction: column; gap: 5px; }
+        .info-box label { font-size: 15px; font-weight: 600; color: var(--primary-blue); }
+        .info-box input, .info-box span { padding: 12px 15px; background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-light); border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box; }
+        .info-box span { background-color: #333; border: 1px solid var(--primary-blue); }
+        .invoice-table-wrapper { margin-top: 30px; }
+        .invoice-table { width: 100%; border-collapse: collapse; }
+        .invoice-table thead { background-color: var(--primary-blue); }
+        .invoice-table th { color: #fff; padding: 15px 10px; font-weight: 700; font-size: 16px; text-align: center; }
+        .invoice-table tbody tr { border-bottom: 1px solid var(--border-color); }
+        .invoice-table td { padding: 5px; vertical-align: middle; }
+        .invoice-table input { height: 50px; padding: 0 15px; border: none; background-color: transparent; text-align: center; color: var(--text-light); font-size: 15px; width: 100%; box-sizing: border-box; }
+        .invoice-table input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        .controls-and-summary { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; flex-wrap: wrap; gap: 20px; }
+        .summary-box { background-color: var(--total-bg); padding: 20px 30px; border-radius: 10px; display: flex; gap: 30px; font-size: 22px; font-weight: 700; border: 2px solid var(--primary-blue); flex: 1 1 45%; min-width: 300px; justify-content: space-between;}
+        .summary-box span:last-child { color: var(--primary-green); }
+        .btn { padding: 15px 30px; font-size: 16px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background-color: var(--primary-blue); color: white; }
+        .btn-secondary { background-color: #333; color: white; }
+        .btn-add-invoice { background-color: var(--input-bg); color: var(--primary-blue); border: 2px solid var(--primary-blue); padding: 12px 25px; display: flex; align-items: center; gap: 8px; }
+        .btn-delete-row { background-color: var(--danger-red); color: white; padding: 8px 12px; font-size: 13px; border-radius: 6px; width: 100%; display: block; }
+        .button-group { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; margin-top: 20px;}
+        .button-group .btn { flex-grow: 1; }
+        .shortcuts-hint { font-size: 12px; color: #888; text-align: center; width: 100%; margin-top: 15px; }
+        
+        @media screen and (max-width: 768px) {
+            .card { padding: 15px; }
+            .info-row { flex-direction: column; gap: 10px; margin-bottom: 20px; }
+            .info-box { min-width: 100%; }
+            .controls-and-summary { flex-direction: column-reverse; gap: 15px; }
+            .summary-box, .btn-add-invoice { width: 100%; }
+            .invoice-table thead { display: none; }
+            .invoice-table tr { display: block; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 15px; background-color: var(--input-bg); }
+            .invoice-table td { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+            .invoice-table tr td:last-child { border-bottom: none; }
+            .invoice-table td::before { content: attr(data-label); font-weight: 600; color: var(--primary-blue); padding-left: 10px; }
+            .invoice-table input { text-align: left; }
+            .btn-delete-row { width: auto; padding: 8px 20px; }
+        }
+    </style>
+
+    <style id="print-styles">
+        body {
+            font-family: 'Cairo', sans-serif;
+            direction: rtl;
+            color: #000; /* تغيير لون النص للأسود للطباعة */
+            background-color: #fff; /* خلفية بيضاء للطباعة */
+        }
+        /* إخفاء عناصر التحكم في واجهة الطباعة */
+        #main-form, .shortcuts-hint { display: none; }
+        .summary-header-print {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 10px 0;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+        }
+        .summary-details-print {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            font-size: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #000;
+        }
+        .summary-details-print p { margin: 0; }
+        .summary-details-print strong { font-weight: 700; margin-left: 5px; }
+        .summary-table-print {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-bottom: 2px solid #000;
+        }
+        .summary-table-print th, .summary-table-print td {
+            padding: 10px;
+            font-size: 14px;
+            text-align: center;
+            border: none;
+        }
+        .summary-table-print thead {
+            border: 2px solid #000;
+            border-bottom-width: 2px;
+        }
+        .summary-table-print th:not(:first-child),
+        .summary-table-print td:not(:first-child) {
+            border-right: 1px solid #000;
+        }
+        .summary-total-print {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: center;
+            padding: 12px;
+            border: 2px solid #000;
+        }
+        .signature-line {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 60px;
+            font-size: 14px;
+        }
+        .signature-box {
+            width: 40%;
+            text-align: center;
+        }
+        .signature-box p {
+             margin-bottom: 30px;
+        }
+        .signature-box .line {
+            border-top: 1px solid #000;
+        }
+        .developer-credit-line {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 10px;
+            color: #555;
+        }
+        @media print {
+            @page { margin: 20mm; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card" id="main-form">
+        <div class="app-header"><h1>Receipt Rocket</h1><p>نظام إدخال وإصدار أذون الاستلام</p></div>
+        <div class="info-row">
+            <div class="info-box"><label for="delegate-name">اسم المندوب:</label><input type="text" id="delegate-name" placeholder="أدخل اسم المندوب" required></div>
+            <div class="info-box"><label>رقم الإذن:</label><span id="voucher-id-display">...</span></div>
+            <div class="info-box"><label>تاريخ ووقت الإنشاء:</label><span id="creation-date-display">...</span></div>
+        </div>
+        <div class="invoice-table-wrapper">
+            <table class="invoice-table">
+                <thead><tr><th>اسم العميل</th><th>تاريخ الفاتورة</th><th>رقم الفاتورة</th><th>قيمة الفاتورة (ج.م)</th><th>إجراء</th></tr></thead>
+                <tbody id="invoice-items-container"></tbody>
+            </table>
+        </div>
+        <div class="controls-and-summary">
+            <button type="button" id="add-invoice-btn" class="btn btn-add-invoice">+ إضافة فاتورة جديدة</button>
+            <div class="summary-box"><span>الإجمالي الكلي:</span><span id="total-amount">٠.٠٠ ج.م</span></div>
+        </div>
+        <div class="button-group">
+            <button type="button" id="print-a4-btn" class="btn btn-primary">طباعة الإيصال (A4)</button>
+            <button type="button" id="print-thermal-btn" class="btn btn-secondary">طباعة إيصال حراري</button>
+        </div>
+        <p class="shortcuts-hint">الاختصارات: <b>Alt + ج</b> (فاتورة جديدة) | <b>Ctrl + P</b> (طباعة A4)</p>
+    </div>
+    </div>
+
+<template id="invoice-row-template">
+    <tr>
+        <td data-label="اسم العميل:"><input type="text" class="invoice-customer" placeholder="اسم العميل" required></td>
+        <td data-label="تاريخ الفاتورة:"><input type="date" class="invoice-date" required></td>
+        <td data-label="رقم الفاتورة:"><input type="text" class="invoice-number" placeholder="رقم الفاتورة" required></td>
+        <td data-label="قيمة الفاتورة:"><input type="number" class="invoice-value" value="0.00" step="0.01" min="0" required></td>
+        <td data-label="إجراء:"><button type="button" class="btn-delete-row">حذف</button></td>
+    </tr>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const invoiceItemsContainer = document.getElementById('invoice-items-container');
+    const voucherIdDisplay = document.getElementById('voucher-id-display');
+    const creationDateDisplay = document.getElementById('creation-date-display');
+    const totalAmountSpan = document.getElementById('total-amount');
+    const delegateNameInput = document.getElementById('delegate-name');
+    const invoiceRowTemplate = document.getElementById('invoice-row-template');
+
+    let currentVoucherId = '';
+    const developerInfo = "تم تطويره بواسطة: زياد يحيى - 01124148723";
+
+    const initializeVoucher = () => {
+        // يتم استخدام localStorage لتخزين آخر رقم إذن وتاريخه
+        const lastVoucherData = JSON.parse(localStorage.getItem('lastVoucher')) || { id: 1000, date: new Date().toISOString().substring(0, 10) };
+        
+        let newVoucherNumber;
+        const today = new Date().toISOString().substring(0, 10);
+        
+        if (lastVoucherData.date === today) {
+            newVoucherNumber = lastVoucherData.id + 1;
+        } else {
+            newVoucherNumber = 1001; // يبدأ من 1001 في يوم جديد
+        }
+        
+        currentVoucherId = `VCH-${newVoucherNumber}`;
+        localStorage.setItem('lastVoucher', JSON.stringify({ id: newVoucherNumber, date: today }));
+
+        voucherIdDisplay.textContent = currentVoucherId;
+        creationDateDisplay.textContent = new Date().toLocaleString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+
+    const createInvoiceRow = () => {
+        const templateClone = invoiceRowTemplate.content.cloneNode(true);
+        templateClone.querySelector('.invoice-date').value = new Date().toISOString().substring(0, 10);
+        invoiceItemsContainer.appendChild(templateClone);
+        const firstInput = invoiceItemsContainer.querySelector('tr:last-child .invoice-customer');
+        if(firstInput) firstInput.focus();
+    };
+
+    const updateTotals = () => {
+        let total = 0;
+        const valueInputs = invoiceItemsContainer.querySelectorAll('.invoice-value');
+        valueInputs.forEach(input => { total += parseFloat(input.value) || 0; });
+        totalAmountSpan.textContent = total.toLocaleString('ar-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 2 });
+    };
+    
+    // --- !! دالة الطباعة المحدثة لفتح تاب جديدة !! ---
+    const prepareAndPrint = (mode) => {
+        const delegateName = delegateNameInput.value.trim();
+        if (!delegateName) { alert("الرجاء إدخال اسم المندوب أولاً."); delegateNameInput.focus(); return; }
+        const allRows = invoiceItemsContainer.querySelectorAll('tr');
+        if (allRows.length === 0) { alert("الرجاء إضافة فاتورة واحدة على الأقل قبل الطباعة."); return; }
+
+        let finalTotal = 0;
+        const invoiceData = Array.from(allRows).map(row => {
+            const valueInput = row.querySelector('.invoice-value');
+            if(!valueInput.value) valueInput.value = '0.00'; // التأكد من وجود قيمة
+            const value = parseFloat(valueInput.value) || 0;
+            finalTotal += value;
+            return {
+                customer: row.querySelector('.invoice-customer').value.trim() || "---",
+                date: row.querySelector('.invoice-date').value || "---",
+                number: row.querySelector('.invoice-number').value.trim() || "---",
+                value: value.toLocaleString('ar-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 2 })
+            };
+        });
+        
+        // التحقق من صحة جميع المدخلات قبل الطباعة
+        let isValid = true;
+        invoiceData.forEach((item, index) => {
+            if (item.customer === "---" || item.date === "---" || item.number === "---") {
+                 alert(`الرجاء إكمال بيانات الفاتورة رقم ${index + 1} (اسم العميل، تاريخ الفاتورة، رقم الفاتورة).`);
+                 allRows[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                 isValid = false;
+                 return;
+            }
+        });
+        if (!isValid) return;
+
+        const invoiceRowsHTML = invoiceData.map(data => `
+            <tr>
+                <td>${data.customer}</td>
+                <td>${data.date}</td>
+                <td>${data.number}</td>
+                <td>${data.value}</td>
+            </tr>`).join('');
+
+        const formattedTotal = finalTotal.toLocaleString('ar-EG', { style: 'currency', currency: 'EGP', minimumFractionDigits: 2 });
+        
+        const receiptHTML = `
+            <div class="summary-header-print">إذن استلام فواتير</div>
+            <div class="summary-details-print">
+                <p><strong>الرقم الفريد:</strong> <span>${currentVoucherId}</span></p>
+                <p><strong>اسم المندوب:</strong> <span>${delegateName}</span></p>
+                <p><strong>تاريخ الإنشاء:</strong> <span>${creationDateDisplay.textContent}</span></p>
+            </div>
+            <table class="summary-table-print">
+                <thead><tr><th>اسم العميل</th><th>تاريخ الفاتورة</th><th>رقم الفاتورة</th><th>قيمة الفاتورة</th></tr></thead>
+                <tbody>${invoiceRowsHTML}</tbody>
+            </table>
+            <div class="summary-total-print">الإجمالي الكلي: ${formattedTotal}</div>
+            <div class="signature-line">
+                <div class="signature-box"><p>توقيع المندوب</p><div class="line"></div></div>
+                <div class="signature-box"><p>توقيع المستلم (الإدارة)</p><div class="line"></div></div>
+            </div>
+            <p class="developer-credit-line">${developerInfo}</p>
+        `;
+        
+        // فتح نافذة جديدة وكتابة المحتوى بداخلها
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.write('<html><head>');
+        printWindow.document.write(`<title>إذن استلام - ${currentVoucherId}</title>`);
+        printWindow.document.write('<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">');
+        printWindow.document.write('<style>' + document.getElementById('print-styles').innerHTML + '</style>');
+        
+        if (mode === 'Thermal') {
+             // يمكن هنا إضافة تنسيقات CSS خاصة بالطباعة الحرارية 
+             // حالياً، سنستخدم نفس تنسيقات A4 مع بعض التعديلات البسيطة
+             printWindow.document.write('<style>@page { size: 80mm auto; margin: 5mm; } .summary-table-print th, .summary-table-print td { font-size: 10px; padding: 5px; } .summary-header-print { font-size: 16px; } .summary-total-print { font-size: 14px; }</style>');
+        }
+
+        printWindow.document.write('</head><body>');
+        printWindow.document.write(receiptHTML);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+
+        // استدعاء الطباعة بعد تحميل المحتوى
+        printWindow.onload = function() {
+            printWindow.focus();
+            printWindow.print();
+        };
+    };
+
+    const handleShortcuts = (e) => {
+        // Alt + ج لإضافة فاتورة جديدة
+        if (e.altKey && (e.key === 'ج' || e.key.toLowerCase() === 'j')) { e.preventDefault(); createInvoiceRow(); }
+        // Ctrl + P أو Ctrl + ط للطباعة
+        if (e.ctrlKey && (e.key.toLowerCase() === 'p' || e.key.toLowerCase() === 'ط')) { e.preventDefault(); prepareAndPrint('A4'); }
+    };
+
+    document.getElementById('add-invoice-btn').addEventListener('click', createInvoiceRow);
+    document.getElementById('print-a4-btn').addEventListener('click', () => prepareAndPrint('A4'));
+    document.getElementById('print-thermal-btn').addEventListener('click', () => prepareAndPrint('Thermal')); // تم تحديث الدالة للدعم البسيط للطباعة الحرارية
+
+    invoiceItemsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-delete-row')) { e.target.closest('tr').remove(); updateTotals(); }
+    });
+    invoiceItemsContainer.addEventListener('input', (e) => {
+        if (e.target.classList.contains('invoice-value')) { updateTotals(); }
+    });
+    document.addEventListener('keydown', handleShortcuts);
+    
+    // إضافة وظيفة الحفظ التلقائي عند تغيير أي شيء في المدخلات
+    const saveState = () => {
+        const rows = Array.from(invoiceItemsContainer.querySelectorAll('tr')).map(row => ({
+            customer: row.querySelector('.invoice-customer').value,
+            date: row.querySelector('.invoice-date').value,
+            number: row.querySelector('.invoice-number').value,
+            value: row.querySelector('.invoice-value').value
+        }));
+        const state = {
+            delegateName: delegateNameInput.value,
+            invoices: rows,
+            voucherId: voucherIdDisplay.textContent
+        };
+        localStorage.setItem('voucherState', JSON.stringify(state));
+    };
+
+    const loadState = () => {
+        const state = JSON.parse(localStorage.getItem('voucherState'));
+        if (state && state.invoices && state.invoices.length > 0) {
+            delegateNameInput.value = state.delegateName || '';
+            state.invoices.forEach(item => {
+                const templateClone = invoiceRowTemplate.content.cloneNode(true);
+                const row = templateClone.querySelector('tr');
+                row.querySelector('.invoice-customer').value = item.customer;
+                row.querySelector('.invoice-date').value = item.date;
+                row.querySelector('.invoice-number').value = item.number;
+                row.querySelector('.invoice-value').value = item.value;
+                invoiceItemsContainer.appendChild(row);
+            });
+            updateTotals();
+            // بما أن الإذن يتم توليده برقم جديد كل يوم، نعتمد على نظام التوليد الجديد
+        } else {
+             // إذا لم يكن هناك بيانات محفوظة، ابدأ بصف واحد
+             createInvoiceRow();
+        }
+    };
+    
+    // ربط الحفظ التلقائي مع جميع مدخلات النموذج
+    document.getElementById('main-form').addEventListener('input', saveState);
+
+    initializeVoucher();
+    loadState();
+});
+</script>
+
+</body>
+</html>
